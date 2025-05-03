@@ -109,19 +109,19 @@ void Simulation::applyForcesToParticle(Particle& particle, double dt) {
     // Calculate distance from center
     double distance = std::sqrt(x*x + y*y);
     
-    // Calculate normalized direction outward from center (away from center)
+    // Calculate normalized direction outward from center
     double dirX = 0, dirY = 0;
     if (distance > 1e-10) {
-        dirX = x / distance;  // Direction is away from center
+        dirX = x / distance;
         dirY = y / distance;
     }
     
     // Get force magnitude from containment field
     double forceMagnitude = containmentField->getContainmentForce(particle);
     
-    // Calculate force components (pushing outward)
-    double fx = dirX * forceMagnitude;
-    double fy = dirY * forceMagnitude;
+    // Apply force inward (toward center)
+    double fx = -dirX * forceMagnitude;
+    double fy = -dirY * forceMagnitude;
     
     // Update velocity based on forces
     double vx = particle.getVX() + fx * dt;
@@ -191,14 +191,6 @@ void Simulation::handleCollisions() {
                 particles[i]->collide(*particles[j]);
             }
         }
-    }
-}
-
-void Simulation::workerThread(size_t threadId) {
-    // This function is no longer needed as we're using the ThreadManager
-    // for task distribution, but we'll keep it for compatibility
-    while (running) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
