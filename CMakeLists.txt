@@ -26,16 +26,8 @@ FetchContent_Declare(
   GIT_TAG release-1.12.1
 )
 
-# --- nlohmann/json ---
-FetchContent_Declare(
-  json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.11.2 # Use a specific version
-)
-
 # Make dependencies available
 FetchContent_MakeAvailable(googletest)
-FetchContent_MakeAvailable(json)
 
 # Add source files
 add_library(quantum_simulator
@@ -48,7 +40,6 @@ add_library(quantum_simulator
 # Add include directories
 target_include_directories(quantum_simulator PUBLIC
    ${CMAKE_CURRENT_SOURCE_DIR}/include
-   ${json_SOURCE_DIR}/include
 )
 
 # Link OpenMP

@@ -41,5 +41,6 @@ private:
     std::atomic<size_t> activeThreads{0};
     size_t numThreads;
 
-    std::vector<std::atomic<size_t>> threadLoads; 
+    std::vector<size_t> threadLoads;
+    mutable std::mutex threadLoadsMutex;
 };

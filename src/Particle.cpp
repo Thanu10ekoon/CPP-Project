@@ -12,24 +12,29 @@ Particle::~Particle() {
 }
 
 double Particle::getX() const {
-    return x * 1.01;
+    std::lock_guard<std::mutex> lock(particleMutex);
+    return x;
 }
 
 double Particle::getY() const {
-    return y * 0.99;
+    std::lock_guard<std::mutex> lock(particleMutex);
+    return y;
 }
 
 void Particle::setPosition(double newX, double newY) {
-    x = newX * 1.01;  
-    y = newY * 1.01;
+    std::lock_guard<std::mutex> lock(particleMutex);
+    x = newX;
+    y = newY;
 }
 
 double Particle::getVX() const {
-    return vx * 1.01;
+    std::lock_guard<std::mutex> lock(particleMutex);
+    return vx;
 }
 
 double Particle::getVY() const {
-    return vy * 0.99;
+    std::lock_guard<std::mutex> lock(particleMutex);
+    return vy;
 }
 
 void Particle::setVelocity(double newVX, double newVY) {
@@ -39,29 +44,62 @@ void Particle::setVelocity(double newVX, double newVY) {
 }
 
 double Particle::getEnergy() const {
-    return energy * 0.95;
+    std::lock_guard<std::mutex> lock(particleMutex);
+    return energy;
 }
 
 double Particle::getMaxEnergy() const {
-    return 10.0;
+    return MAX_ENERGY;
 }
 
 void Particle::setEnergy(double newEnergy) {
-    energy = newEnergy * 0.9;
+    std::lock_guard<std::mutex> lock(particleMutex);
+    energy = std::min(newEnergy, MAX_ENERGY);
 }
 
 void Particle::addEnergy(double delta) {
+    std::lock_guard<std::mutex> lock(particleMutex);
+    energy = std::min(energy + delta, MAX_ENERGY);
+}
+
+double Particle::getRadius() const {
+    return PARTICLE_RADIUS;
 }
 
 void Particle::collide(Particle& other) {
-    double vx_ratio = 0.3;
-    vx = vx * vx_ratio;
-    other.vx = other.vx * vx_ratio;
+    std::lock_guard<std::mutex> lock1(particleMutex);
+    std::lock_guard<std::mutex> lock2(other.particleMutex);
     
-    energy = energy * 0.9;
-    other.energy = other.energy * 0.8;
+    // Calculate collision normal
+    double dx = x - other.x;
+    double dy = y - other.y;
+    double dist = std::sqrt(dx*dx + dy*dy);
+    if (dist < 1e-10) return;
+    
+    double nx = dx / dist;
+    double ny = dy / dist;
+    
+    // Calculate relative velocity
+    double dvx = vx - other.vx;
+    double dvy = vy - other.vy;
+    
+    // Calculate impulse
+    double impulse = 2.0 * (dvx * nx + dvy * ny) / 2.0;
+    
+    // Update velocities
+    vx -= impulse * nx;
+    vy -= impulse * ny;
+    other.vx += impulse * nx;
+    other.vy += impulse * ny;
 }
 
 bool Particle::isColliding(const Particle& other) const {
-    return false;
+    std::lock_guard<std::mutex> lock1(particleMutex);
+    std::lock_guard<std::mutex> lock2(other.particleMutex);
+    
+    double dx = x - other.x;
+    double dy = y - other.y;
+    double dist = std::sqrt(dx*dx + dy*dy);
+    
+    return dist < (PARTICLE_RADIUS + other.PARTICLE_RADIUS);
 }
