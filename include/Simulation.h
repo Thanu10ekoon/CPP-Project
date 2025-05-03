@@ -37,6 +37,11 @@ public:
 
     void updatePositions(double timeStep); 
     void applyForces(double timeStep);
+
+    // New methods for improved particle processing
+    void processParticleRange(size_t startIdx, size_t endIdx);
+    void applyForcesToParticle(Particle& particle, double dt);
+    void updateParticlePosition(Particle& particle, double dt);
     void handleCollisions();
 
 private:
@@ -54,4 +59,4 @@ private:
     std::condition_variable cv;
     std::atomic<bool> running{false};
     size_t numThreads;
-}; 
+};

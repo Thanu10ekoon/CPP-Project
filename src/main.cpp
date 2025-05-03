@@ -9,6 +9,8 @@
 #include <stdexcept>    
 #include <nlohmann/json.hpp> 
 
+using json = nlohmann::json;
+
 Config loadConfig(const std::string& filename) {
     std::ifstream configFile(filename);
     if (!configFile.is_open()) {
@@ -84,23 +86,29 @@ Config loadConfig(const std::string& filename) {
 void renderASCII(const std::vector<std::unique_ptr<Particle>>& particles, double fieldSize, const Config& cfg) {
     std::vector<std::vector<int>> gridCounts(cfg.grid_height, std::vector<int>(cfg.grid_width, 0));
 
+    // Count particles in each grid cell
     for (const auto& particle : particles) {
         double x = particle->getX();
         double y = particle->getY();
 
+        // Convert particle position to grid coordinates
         int col = static_cast<int>((x + fieldSize/2) * cfg.grid_width / fieldSize);
         int row = static_cast<int>((y + fieldSize/2) * cfg.grid_height / fieldSize);
 
+        // Ensure coordinates are within bounds
         col = std::clamp(col, 0, cfg.grid_width - 1);
         row = std::clamp(row, 0, cfg.grid_height - 1);
 
         gridCounts[row][col]++;
     }
 
+    // Clear screen and print the grid
     std::cout << "\033[2J\033[H"; 
 
+    // Print top border
     std::cout << '+' << std::string(cfg.grid_width, '-') << "+\n";
 
+    // Print grid content
     for (int i = 0; i < cfg.grid_height; ++i) {
         std::cout << '|'; 
         for (int j = 0; j < cfg.grid_width; ++j) {
@@ -116,46 +124,52 @@ void renderASCII(const std::vector<std::unique_ptr<Particle>>& particles, double
         std::cout << "|\n"; 
     }
 
+    // Print bottom border
     std::cout << '+' << std::string(cfg.grid_width, '-') << "+\n";
-
     std::cout << std::flush;
 }
 
 int main() {
     try {
+        // Load configuration
         const std::string configFilename = "config.json";
         Config config = loadConfig(configFilename);
         std::cout << "Configuration loaded from " << configFilename << std::endl;
 
+        // Create and initialize simulation
         Simulation simulation(config);
-
         simulation.start();
 
+        // Set up timing variables for frame rate control
         const double FRAME_TIME = 1.0 / config.target_fps;
+        int frameCount = 0;
+        auto lastStatTime = std::chrono::high_resolution_clock::now();
 
+        // Main simulation loop
         while (simulation.getParticleCount() > 0) {
             auto frameStart = std::chrono::high_resolution_clock::now();
 
+            // Process a simulation step
             simulation.step();
 
+            // Render the current state
             renderASCII(simulation.getParticles(), config.field_size, config);
 
+            // Control frame rate
             auto frameEnd = std::chrono::high_resolution_clock::now();
             auto frameDuration = std::chrono::duration<double>(frameEnd - frameStart).count();
-
             if (frameDuration < FRAME_TIME) {
                 std::this_thread::sleep_for(
                     std::chrono::duration<double>(FRAME_TIME - frameDuration)
                 );
             }
 
-            static int frameCount = 0;
-             if (++frameCount % 30 == 0) {
-                 auto now = std::chrono::high_resolution_clock::now();
-                 static auto lastStatTime = now;
-                 auto elapsed = std::chrono::duration<double>(now - lastStatTime).count();
-                 double actualFps = (elapsed > 1e-6) ? (30.0 / elapsed) : 0.0;
-                 lastStatTime = now;
+            // Display statistics periodically
+            if (++frameCount % 30 == 0) {
+                auto now = std::chrono::high_resolution_clock::now();
+                auto elapsed = std::chrono::duration<double>(now - lastStatTime).count();
+                double actualFps = (elapsed > 1e-6) ? (30.0 / elapsed) : 0.0;
+                lastStatTime = now;
 
                 std::cout << "\nParticles: " << simulation.getParticleCount()
                           << " | Energy: " << simulation.getTotalEnergy()
@@ -171,4 +185,4 @@ int main() {
         return 1;
     }
     return 0;
-} 
+}
